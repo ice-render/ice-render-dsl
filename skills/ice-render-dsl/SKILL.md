@@ -1,7 +1,7 @@
 ---
 name: ice-render-dsl
 description: Render rich interactive ice-render diagrams from a JSON-first node/edge DSL instead of raw canvas API calls.
-version: "1.0.2"
+version: "1.0.3"
 category: ux
 metadata:
   short-description: JSON-first DSL for ice-render node/edge scenes, groups, links, animations, and viewport controls.
@@ -38,8 +38,8 @@ The DSL describes the complete visual scene and can be rendered in a browser or 
 | type | purpose | key fields |
 | --- | --- | --- |
 | `rect` | rectangle / rounded rectangle | `left`, `top`, `width`, `height`, `radius` |
-| `circle` | circle | `left`, `top`, `radius` or `width`/`height` |
-| `ellipse` | ellipse | `left`, `top`, `width`, `height` |
+| `circle` | circle | `left`, `top`, `radius` |
+| `ellipse` | ellipse | `left`, `top`, `radiusX`, `radiusY` |
 | `text` | single or multi-line text | `left`, `top`, `text`, `style` |
 | `polyline` | open polyline / path | `points` |
 | `image` | bitmap image / sprite / avatar | `src`, `width`, `height`, `clipType`, `sx`, `sy`, `sw`, `sh` |
@@ -165,7 +165,9 @@ when explicit geometry is required.
 - `renderMode`: `dirty-rect` (default) or `full`.
 - `dpr`: device pixel ratio.
 - `viewport`: explicit initial zoom and pan.
-- `fitViewport`: automatically fit the whole scene into the canvas.
+- `fitViewport`: shrink the whole scene to fit the canvas and center it. It
+  never upscales content; if the content already fits, the viewport stays at
+  `scale: 1` and only pans to center it.
 
 ## Rendering
 

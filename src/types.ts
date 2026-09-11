@@ -31,6 +31,8 @@ export type DslNode = {
   width?: number;
   height?: number;
   radius?: number;
+  radiusX?: number;
+  radiusY?: number;
   text?: string;
   points?: number[][];
   src?: string;

@@ -135,6 +135,9 @@ function fitViewport(ice: any, nodes: any[], padding: number): void {
   let maxY = -Infinity;
 
   nodes.forEach((node) => {
+    if (typeof node.measure === 'function') {
+      node.measure();
+    }
     const box = node.getMinBoundingBox(true);
     const bounds = box.getMinAndMaxPoint();
     minX = Math.min(minX, bounds.minX);
