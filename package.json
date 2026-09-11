@@ -1,6 +1,6 @@
 {
   "name": "ice-render-dsl",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A JSON-first DSL layer for AI agents to drive ice-render.",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",

@@ -1,40 +1,29 @@
 import type { DslDocument, DslEdge, DslNode } from '../types';
 
+export type CompiledNode = Record<string, any> & {
+  children?: CompiledNode[];
+};
+
+export type CompiledEdge = Record<string, any>;
+
 export type CompiledScene = {
-  nodes: Array<Record<string, any>>;
-  edges: Array<Record<string, any>>;
+  nodes: CompiledNode[];
+  edges: CompiledEdge[];
   options?: Record<string, any>;
 };
 
-function normalizeNode(node: DslNode): Record<string, any> {
+function normalizeNode(node: DslNode): CompiledNode {
+  const { children, ...props } = node;
   return {
-    id: node.id,
-    type: node.type,
-    left: node.left,
-    top: node.top,
-    width: node.width,
-    height: node.height,
-    radius: node.radius,
-    text: node.text,
-    points: node.points,
-    style: node.style,
-    interactive: node.interactive,
-    draggable: node.draggable,
+    ...props,
+    children: Array.isArray(children) ? children.map(normalizeNode) : undefined,
   };
 }
 
-function normalizeEdge(edge: DslEdge, index: number): Record<string, any> {
+function normalizeEdge(edge: DslEdge): CompiledEdge {
   return {
-    id: edge.id || `edge-${index}`,
-    source: edge.source,
-    target: edge.target,
-    lineType: edge.lineType,
-    arrow: edge.arrow,
-    routeType: edge.routeType,
-    curveType: edge.curveType,
-    label: edge.label,
-    style: edge.style,
-    lineDash: edge.lineDash,
+    ...edge,
+    id: edge.id || `edge-${edge.source}-${edge.target}`,
   };
 }
 
