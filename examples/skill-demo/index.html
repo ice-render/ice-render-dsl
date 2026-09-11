@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>ice-render-dsl skill demo</title>
+  <style>
+    body {
+      margin: 0;
+      font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 24px;
+    }
+    canvas {
+      display: block;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #ffffff;
+    }
+  </style>
+  <body>
+    <h1>ice-render-dsl skill demo</h1>
+    <canvas id="canvas" width="1100" height="360"></canvas>
+
+    <script type="application/json" id="dsl">
+      {
+        "schemaVersion": 1,
+        "nodes": [
+          { "id": "browser", "type": "rect", "left": 100, "top": 120, "width": 180, "height": 80, "text": "Browser", "style": { "fillStyle": "#dbeafe", "strokeStyle": "#2563eb" } },
+          { "id": "runtime", "type": "rect", "left": 430, "top": 120, "width": 180, "height": 80, "text": "DSL Runtime", "style": { "fillStyle": "#dcfce7", "strokeStyle": "#16a34a" } },
+          { "id": "canvas", "type": "rect", "left": 760, "top": 120, "width": 180, "height": 80, "text": "Canvas", "style": { "fillStyle": "#fee2e2", "strokeStyle": "#dc2626" } }
+        ],
+        "edges": [
+          { "source": "browser", "target": "runtime", "routeType": "orthogonal", "arrow": "end", "label": "JSON DSL" },
+          { "source": "runtime", "target": "canvas", "routeType": "orthogonal", "arrow": "end", "label": "render" }
+        ]
+      }
+    </script>
+    <script src="../../node_modules/ice-render/dist/index.umd.js"></script>
+    <script src="../../dist/index.umd.js"></script>
+    <script>
+      const dsl = JSON.parse(document.getElementById('dsl').textContent);
+      window.__dslResult = ICEDSL.renderDsl('canvas', dsl);
+    </script>
+  </body>
+</html>

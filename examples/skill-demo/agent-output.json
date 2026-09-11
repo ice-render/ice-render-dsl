@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "nodes": [
+    {
+      "id": "browser",
+      "type": "rect",
+      "left": 100,
+      "top": 120,
+      "width": 180,
+      "height": 80,
+      "style": {
+        "fillStyle": "#dbeafe",
+        "strokeStyle": "#2563eb"
+      },
+      "text": "Browser"
+    },
+    {
+      "id": "runtime",
+      "type": "rect",
+      "left": 430,
+      "top": 120,
+      "width": 180,
+      "height": 80,
+      "style": {
+        "fillStyle": "#dcfce7",
+        "strokeStyle": "#16a34a"
+      },
+      "text": "DSL Runtime"
+    },
+    {
+      "id": "canvas",
+      "type": "rect",
+      "left": 760,
+      "top": 120,
+      "width": 180,
+      "height": 80,
+      "style": {
+        "fillStyle": "#fee2e2",
+        "strokeStyle": "#dc2626"
+      },
+      "text": "Canvas"
+    }
+  ],
+  "edges": [
+    {
+      "source": "browser",
+      "target": "runtime",
+      "routeType": "orthogonal",
+      "arrow": "end",
+      "label": "JSON DSL"
+    },
+    {
+      "source": "runtime",
+      "target": "canvas",
+      "routeType": "orthogonal",
+      "arrow": "end",
+      "label": "render"
+    }
+  ]
+}
