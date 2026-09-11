@@ -1,6 +1,6 @@
 {
   "name": "ice-render-dsl",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A JSON-first DSL layer for AI agents to drive ice-render.",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -19,7 +19,7 @@
     "types:check": "tsc --noEmit"
   },
   "dependencies": {
-    "ice-render": "file:../ice-render"
+    "ice-render": "^1.0.5"
   },
   "devDependencies": {
     "@babel/core": "7.17.8",
