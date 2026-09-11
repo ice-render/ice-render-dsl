@@ -1,48 +1,32 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ice-render-dsl document",
+  "title": "ice-render-dsl core document",
   "type": "object",
-  "required": ["entities"],
+  "required": ["nodes"],
   "properties": {
     "schemaVersion": { "type": "number" },
-    "layout": {
-      "type": "string",
-      "enum": ["grid", "layered", "horizontal", "vertical"]
-    },
-    "entities": {
+    "nodes": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id"],
+        "required": ["id", "type"],
         "properties": {
           "id": { "type": "string" },
-          "name": { "type": "string" },
-          "entityName": { "type": "string" },
-          "fields": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["name"],
-              "properties": {
-                "name": { "type": "string" },
-                "type": { "type": "string" },
-                "length": { "type": ["number", "string"] }
-              }
-            }
+          "type": {
+            "type": "string",
+            "enum": ["rect", "circle", "ellipse", "text", "polyline"]
           }
         }
       }
     },
-    "relations": {
+    "edges": {
       "type": "array",
       "items": {
         "type": "object",
         "required": ["source", "target"],
         "properties": {
           "source": { "type": "string" },
-          "target": { "type": "string" },
-          "type": { "type": "string" },
-          "relationType": { "type": "string" }
+          "target": { "type": "string" }
         }
       }
     }

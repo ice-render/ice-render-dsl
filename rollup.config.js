@@ -6,8 +6,8 @@ import { terser } from 'rollup-plugin-terser';
 
 const env = process.env.NODE_ENV;
 const extensions = ['.js', '.jsx', '.ts', '.tsx'];
-const external = ['ice-entity-designer'];
-const globals = { 'ice-entity-designer': 'IED' };
+const external = ['ice-render'];
+const globals = { 'ice-render': 'ICE' };
 
 export default [
   {

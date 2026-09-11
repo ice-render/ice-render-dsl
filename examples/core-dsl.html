@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <meta charset="utf-8" />
-  <title>ice-render-dsl example</title>
+  <title>ice-render-dsl core example</title>
   <style>
     body {
       margin: 0;
@@ -49,67 +49,41 @@
         <textarea id="dsl">
 {
   "schemaVersion": 1,
-  "layout": "layered",
-  "entities": [
+  "nodes": [
     {
-      "id": "customer",
-      "name": "Customer",
-      "fields": [
-        { "name": "id", "type": "number", "primary": true },
-        { "name": "email", "type": "string", "unique": true },
-        { "name": "name", "type": "string" }
-      ]
+      "id": "box1",
+      "type": "rect",
+      "left": 120,
+      "top": 120,
+      "width": 180,
+      "height": 80,
+      "style": { "fillStyle": "#dbeafe", "strokeStyle": "#2563eb" }
     },
     {
-      "id": "order",
-      "name": "Order",
-      "fields": [
-        { "name": "id", "type": "number", "primary": true },
-        { "name": "customerId", "type": "number", "foreignKey": true },
-        { "name": "status", "type": "string" }
-      ]
+      "id": "box2",
+      "type": "circle",
+      "left": 480,
+      "top": 100,
+      "width": 120,
+      "height": 120,
+      "style": { "fillStyle": "#fee2e2", "strokeStyle": "#dc2626" }
     },
     {
-      "id": "product",
-      "name": "Product",
-      "fields": [
-        { "name": "id", "type": "number", "primary": true },
-        { "name": "sku", "type": "string", "unique": true },
-        { "name": "price", "type": "decimal" }
-      ]
-    },
-    {
-      "id": "orderItem",
-      "name": "OrderItem",
-      "fields": [
-        { "name": "id", "type": "number", "primary": true },
-        { "name": "orderId", "type": "number", "foreignKey": true },
-        { "name": "productId", "type": "number", "foreignKey": true },
-        { "name": "quantity", "type": "number" }
-      ]
+      "id": "label",
+      "type": "text",
+      "left": 260,
+      "top": 300,
+      "text": "Hello ice-render DSL",
+      "style": { "fillStyle": "#0f172a", "fontSize": 22 }
     }
   ],
-  "relations": [
+  "edges": [
     {
-      "source": "customer",
-      "target": "order",
-      "type": "one-to-many",
-      "sourceField": "id",
-      "targetField": "customerId"
-    },
-    {
-      "source": "order",
-      "target": "orderItem",
-      "type": "one-to-many",
-      "sourceField": "id",
-      "targetField": "orderId"
-    },
-    {
-      "source": "product",
-      "target": "orderItem",
-      "type": "one-to-many",
-      "sourceField": "id",
-      "targetField": "productId"
+      "source": "box1",
+      "target": "box2",
+      "routeType": "orthogonal",
+      "arrow": "end",
+      "label": "edge"
     }
   ]
 }
@@ -120,7 +94,7 @@
       </div>
     </main>
 
-    <script src="../node_modules/ice-entity-designer/dist/index.umd.js"></script>
+    <script src="../node_modules/ice-render/dist/index.umd.js"></script>
     <script src="../dist/index.umd.js"></script>
     <script>
       const textarea = document.getElementById('dsl');

@@ -1,13 +1,13 @@
 # ice-render-dsl
 
-JSON-first DSL for AI agents to drive `ice-render` without learning the imperative canvas API.
+JSON-first core DSL for AI agents to drive `ice-render` primitives without learning the imperative canvas API.
 
 The package contains:
 
-- DSL types and schema
+- generic node/edge DSL types and schema
 - structural validator
-- compiler from DSL to Entity/Relation props
-- browser runtime that renders DSL through `ice-entity-designer`
+- compiler from DSL to core component props
+- browser runtime that renders DSL through `ice-render`
 - browser example with a JSON editor
 
 ## Install
@@ -22,22 +22,19 @@ npm run build
 ```html
 <canvas id="canvas" width="1200" height="800"></canvas>
 
-<script src="node_modules/ice-entity-designer/dist/index.umd.js"></script>
+<script src="node_modules/ice-render/dist/index.umd.js"></script>
 <script src="dist/index.umd.js"></script>
 <script>
   const dsl = {
     schemaVersion: 1,
-    layout: 'layered',
-    entities: [
-      { id: 'customer', name: 'Customer', fields: [{ name: 'id', type: 'number', primary: true }] },
-      { id: 'order', name: 'Order', fields: [{ name: 'id', type: 'number', primary: true }] },
+    nodes: [
+      { id: 'box1', type: 'rect', left: 120, top: 120 },
+      { id: 'box2', type: 'circle', left: 480, top: 100 },
     ],
-    relations: [
-      { source: 'customer', target: 'order', type: 'one-to-many' },
-    ],
+    edges: [{ source: 'box1', target: 'box2', routeType: 'orthogonal' }],
   };
 
-  const { ice, designer } = ICEDSL.renderDsl('canvas', dsl);
+  const { ice } = ICEDSL.renderDsl('canvas', dsl);
 </script>
 ```
 

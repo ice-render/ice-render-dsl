@@ -2,29 +2,26 @@
 
 ## Purpose
 
-This repository provides a JSON-first DSL for rendering diagrams through `ice-render`.
+This repository provides a JSON-first core DSL for rendering `ice-render` primitives.
 
 ## Rules
 
 - Prefer producing JSON DSL over direct canvas API calls.
 - Always include `schemaVersion: 1`.
-- Entity `id` values must be unique.
-- Relation `source` and `target` must reference existing entity ids.
-- Use `layout: "layered"` for dependency-style diagrams.
-- Use `layout: "grid"` for simple tabular layouts.
+- Node `id` values must be unique.
+- Edge `source` and `target` must reference existing node ids.
 
 ## Minimal document
 
 ```json
 {
   "schemaVersion": 1,
-  "layout": "layered",
-  "entities": [
-    { "id": "a", "name": "A", "fields": [] },
-    { "id": "b", "name": "B", "fields": [] }
+  "nodes": [
+    { "id": "a", "type": "rect" },
+    { "id": "b", "type": "circle" }
   ],
-  "relations": [
-    { "source": "a", "target": "b", "type": "one-to-many" }
+  "edges": [
+    { "source": "a", "target": "b" }
   ]
 }
 ```

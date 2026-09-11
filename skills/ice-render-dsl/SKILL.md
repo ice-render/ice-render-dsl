@@ -1,11 +1,11 @@
 ---
 name: ice-render-dsl
-description: Render diagrams with ice-render using a JSON-first DSL instead of raw canvas API calls.
+description: Render ice-render core diagrams from a JSON-first node/edge DSL instead of raw canvas API calls.
 ---
 
 # ice-render-dsl
 
-Use this skill when the user wants to render Entity/Relation diagrams with `ice-render`.
+Use this skill when the user wants to render generic `ice-render` diagrams.
 
 ## Required output
 
@@ -16,9 +16,8 @@ Return a JSON DSL document, not HTML and not imperative `ICE` API code.
 ```json
 {
   "schemaVersion": 1,
-  "layout": "layered",
-  "entities": [],
-  "relations": [],
+  "nodes": [],
+  "edges": [],
   "options": {}
 }
 ```
@@ -27,12 +26,12 @@ Return a JSON DSL document, not HTML and not imperative `ICE` API code.
 
 ```json
 {
-  "id": "customer",
-  "name": "Customer",
-  "fields": [
-    { "name": "id", "type": "number", "primary": true },
-    { "name": "email", "type": "string", "unique": true }
-  ]
+  "id": "box1",
+  "type": "rect",
+  "left": 120,
+  "top": 120,
+  "width": 160,
+  "height": 80
 }
 ```
 
@@ -40,17 +39,16 @@ Return a JSON DSL document, not HTML and not imperative `ICE` API code.
 
 ```json
 {
-  "source": "customer",
-  "target": "order",
-  "type": "one-to-many",
-  "sourceField": "id",
-  "targetField": "customerId"
+  "source": "box1",
+  "target": "box2",
+  "routeType": "orthogonal",
+  "arrow": "end"
 }
 ```
 
 ## Validation
 
-Use `validateDsl()` before rendering. Entity ids must be unique. Relation endpoints must exist.
+Use `validateDsl()` before rendering. Node ids must be unique. Edge endpoints must exist.
 
 ## Rendering
 

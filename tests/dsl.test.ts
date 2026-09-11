@@ -1,49 +1,37 @@
 import { validateDsl, compileDsl } from '../src';
 
-describe('ice-render-dsl', () => {
-  it('validates a minimal document', () => {
+describe('ice-render-dsl core', () => {
+  it('validates a minimal core document', () => {
     const result = validateDsl({
-      entities: [{ id: 'customer', name: 'Customer', fields: [] }],
+      nodes: [{ id: 'box1', type: 'rect' }],
     });
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
   });
 
-  it('detects duplicate entity ids and invalid relation endpoints', () => {
+  it('detects duplicate node ids and invalid edge endpoints', () => {
     const result = validateDsl({
-      entities: [
-        { id: 'customer' },
-        { id: 'customer' },
-      ],
-      relations: [{ source: 'customer', target: '' }],
+      nodes: [{ id: 'box1', type: 'rect' }, { id: 'box1', type: 'circle' }],
+      edges: [{ source: 'box1', target: '' }],
     } as any);
     expect(result.valid).toBe(false);
     expect(result.errors.join('\n')).toContain('duplicated');
-    expect(result.errors.join('\n')).toContain('relations[0].target');
+    expect(result.errors.join('\n')).toContain('edges[0].target');
   });
 
-  it('compiles DSL into Entity/Relation props', () => {
+  it('compiles core DSL into node/edge props', () => {
     const scene = compileDsl({
-      layout: 'layered',
-      entities: [
-        { id: 'customer', name: 'Customer', fields: [{ name: 'id', type: 'number', primary: true }] },
-        { id: 'order', name: 'Order', fields: [] },
+      nodes: [
+        { id: 'box1', type: 'rect', left: 10, top: 20 },
+        { id: 'box2', type: 'circle' },
       ],
-      relations: [
-        {
-          source: 'customer',
-          target: 'order',
-          type: 'one-to-many',
-          sourceField: 'id',
-          targetField: 'customerId',
-        },
-      ],
+      edges: [{ source: 'box1', target: 'box2', routeType: 'orthogonal' }],
     });
 
-    expect(scene.entities).toHaveLength(2);
-    expect(scene.entities[0].entityName).toBe('Customer');
-    expect(scene.relations).toHaveLength(1);
-    expect(scene.relations[0].relationType).toBe('one-to-many');
-    expect(scene.relations[0].sourceId).toBe('customer');
+    expect(scene.nodes).toHaveLength(2);
+    expect(scene.nodes[0].type).toBe('rect');
+    expect(scene.edges).toHaveLength(1);
+    expect(scene.edges[0].source).toBe('box1');
+    expect(scene.edges[0].routeType).toBe('orthogonal');
   });
 });
