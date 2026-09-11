@@ -2,6 +2,7 @@
 name: ice-render-dsl
 description: Render ice-render core diagrams from a JSON-first node/edge DSL instead of raw canvas API calls.
 version: "1.0.1"
+category: ux
 metadata:
   short-description: JSON-first DSL for generic ice-render node/edge diagrams.
 ---
