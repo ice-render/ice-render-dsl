@@ -1,6 +1,8 @@
 ---
 name: ice-render-dsl
 description: Render ice-render core diagrams from a JSON-first node/edge DSL instead of raw canvas API calls.
+metadata:
+  short-description: JSON-first DSL for generic ice-render node/edge diagrams.
 ---
 
 # ice-render-dsl
@@ -22,7 +24,7 @@ Return a JSON DSL document, not HTML and not imperative `ICE` API code.
 }
 ```
 
-## Entity
+## Node
 
 ```json
 {
@@ -35,7 +37,7 @@ Return a JSON DSL document, not HTML and not imperative `ICE` API code.
 }
 ```
 
-## Relation
+## Edge
 
 ```json
 {
