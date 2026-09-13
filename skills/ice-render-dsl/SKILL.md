@@ -1,7 +1,7 @@
 ---
 name: ice-render-dsl
 description: Render rich interactive ice-render diagrams from a JSON-first node/edge DSL instead of raw canvas API calls.
-version: "1.0.7"
+version: "1.0.8"
 category: ux
 platforms:
   - claude-code
@@ -206,6 +206,15 @@ Supported animation shapes include:
 
 Use `delay`, `loop`, `iterationCount`, and `round` only when needed.
 
+Other knobs that are safe to use:
+
+- **color animation**: `"style.fillStyle": { "from": "#ff0000", "to": "#0000ff", "duration": 400 }` — colors interpolate in sRGB;
+- **custom easing**: `"easing": "easeOutCubic"` (built-in) or a host-registered name (`ICE.registerEasing(name, fn)`);
+- **direction**: `"direction": "reverse" | "alternate"` (`alternate` + `iterationCount` = yoyo);
+- **callbacks**: `onStart` / `onUpdate` / `onRepeat` / `onComplete` (host-side JS; a DSL document cannot carry functions —
+  only reference them if the host resolves them);
+- **fps**: `"fps": 30` for secondary animations (time-based sampling, the curve is unchanged).
+
 **Validation feedback (important for agents).** `validateDsl()` returns structured diagnostics alongside
 the legacy `errors` strings:
 
@@ -218,7 +227,7 @@ const { valid, errors, diagnostics } = ICEDSL.validateDsl(dsl);
 | --- | --- |
 | `ICE_DSL_*` | structural problems in this document (duplicate node id, unknown edge endpoint, unsupported type…) — fix the `path` it points at |
 | `ICE_ANIM_DURATION_INVALID` | `duration` must be a positive number ≤ 60000, or a motion token name (`fast` / `normal` / `slow` / `slower`) |
-| `ICE_ANIM_VALUE_NOT_INTERPOLATABLE` | `from`/`to` must both be numbers or equal-length numeric arrays. **Colors and strings are not animatable** — use `style.globalAlpha` / position instead, or leave it static |
+| `ICE_ANIM_VALUE_NOT_INTERPOLATABLE` | `from`/`to` must be the same kind: numbers, equal-length numeric arrays, **colors** (`#rgb` / `#rrggbb` / `rgb()` / `rgba()`), or unit-matched length strings (`'12px'`). Arbitrary strings are not animatable |
 | `ICE_ANIM_KEYFRAMES_INVALID` | keyframes need ≥ 2 frames; each `value` must be the same kind and length; `offset` must be a finite number |
 | `ICE_ANIM_EASING_UNKNOWN` | unknown easing name (list the available ones from the message; the runtime would silently fall back to `linear`) |
 | `ICE_ANIM_DELAY_INVALID` / `ICE_ANIM_ITERATION_INVALID` | `delay` must be ≥ 0; `iterationCount` must be an integer ≥ 1 |
