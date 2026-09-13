@@ -215,7 +215,7 @@ Other knobs that are safe to use:
   only reference them if the host resolves them);
 - **fps**: `"fps": 30` for secondary animations (time-based sampling, the curve is unchanged).
 
-**Orchestration & runtime control (host-side, engine ≥ 2.2).** The DSL document describes *what* animates;
+**Orchestration & runtime control (host-side, engine ≥ 2.3).** The DSL document describes *what* animates;
 these host APIs decide *when*, and let the app drive playback. Reach for them when the user asks for
 "one after another", "staggered entrance", "play / replay / pause / stop", or a sequence after a click:
 
@@ -324,7 +324,7 @@ There is no generic `layout` field in this DSL. Use explicit coordinates or
 
 ### Runtime requirements
 
-- Node: install `ice-render-dsl@>=0.0.7`; `ice-render@^2.2.0` is a peer
+- Node: install `ice-render-dsl@>=0.0.8`; `ice-render@^2.3.0` is a peer
   dependency (npm 7+ installs peers automatically).
 - Browser: load `ice-render` before `ice-render-dsl`; `ICEDSL` expects the
   global `window.ICE`.
