@@ -1,7 +1,7 @@
 ---
 name: ice-render-dsl
 description: Render rich interactive ice-render diagrams from a JSON-first node/edge DSL instead of raw canvas API calls.
-version: "1.0.6"
+version: "1.0.7"
 category: ux
 platforms:
   - claude-code
@@ -205,6 +205,32 @@ Supported animation shapes include:
 ```
 
 Use `delay`, `loop`, `iterationCount`, and `round` only when needed.
+
+**Validation feedback (important for agents).** `validateDsl()` returns structured diagnostics alongside
+the legacy `errors` strings:
+
+```js
+const { valid, errors, diagnostics } = ICEDSL.validateDsl(dsl);
+// diagnostics: [{ severity: 'error' | 'warning', code, message, path }]
+```
+
+| code | meaning / what to do |
+| --- | --- |
+| `ICE_DSL_*` | structural problems in this document (duplicate node id, unknown edge endpoint, unsupported type…) — fix the `path` it points at |
+| `ICE_ANIM_DURATION_INVALID` | `duration` must be a positive number ≤ 60000, or a motion token name (`fast` / `normal` / `slow` / `slower`) |
+| `ICE_ANIM_VALUE_NOT_INTERPOLATABLE` | `from`/`to` must both be numbers or equal-length numeric arrays. **Colors and strings are not animatable** — use `style.globalAlpha` / position instead, or leave it static |
+| `ICE_ANIM_KEYFRAMES_INVALID` | keyframes need ≥ 2 frames; each `value` must be the same kind and length; `offset` must be a finite number |
+| `ICE_ANIM_EASING_UNKNOWN` | unknown easing name (list the available ones from the message; the runtime would silently fall back to `linear`) |
+| `ICE_ANIM_DELAY_INVALID` / `ICE_ANIM_ITERATION_INVALID` | `delay` must be ≥ 0; `iterationCount` must be an integer ≥ 1 |
+| `ICE_ANIM_INFINITE_LOOP` | warning: `loop: true` without `iterationCount`. Prefer a finite count or leave a way for the user to stop it |
+| `ICE_ANIM_KEY_AFFECTS_MEASUREMENT` | warning: this property changes derived geometry (size / point set / text metrics) → the engine re-measures every frame. Animate position / opacity / color instead |
+
+Rules of thumb that keep animations cheap (see the engine's `bench:anim` / `bench:layers`):
+
+- animate **position / opacity / color**, not `width` / `height` / `text` / font sizes;
+- keep `duration` short (≤ 1s for UI transitions) and prefer finite `iterationCount` over `loop`;
+- with many markers animating over a static scene, the host can use two layers — describe the animation
+  normally, the layering is a host-side concern.
 
 ## Edge contract
 

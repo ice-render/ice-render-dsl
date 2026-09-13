@@ -108,7 +108,24 @@ export type DslDocument = {
   options?: DslDocumentOptions;
 };
 
+/**
+ * 结构化诊断（Agent 侧闭环用）：稳定码 + 精确路径 + 人话 message。
+ *
+ * - 结构检查：`ICE_DSL_*`（本包）
+ * - 动画检查：`ICE_ANIM_*`（引擎的 `validateAnimations()`，本包只转述并补节点路径）
+ */
+export type DslDiagnostic = {
+  severity: 'error' | 'warning';
+  code: string;
+  message: string;
+  /** 出问题的位置：如 `nodes[2].animations.transform.translate` */
+  path: string;
+};
+
 export type DslValidationResult = {
   valid: boolean;
+  /** 历史字段：纯文本错误（与 `diagnostics` 里的 error 同源，逐条对应） */
   errors: string[];
+  /** 结构化诊断：包含 warning（`errors` 只含 error） */
+  diagnostics: DslDiagnostic[];
 };
