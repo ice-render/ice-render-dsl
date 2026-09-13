@@ -1,7 +1,7 @@
 ---
 name: ice-render-dsl
 description: Render rich interactive ice-render diagrams from a JSON-first node/edge DSL instead of raw canvas API calls.
-version: "1.0.8"
+version: "1.0.9"
 category: ux
 platforms:
   - claude-code
@@ -214,6 +214,22 @@ Other knobs that are safe to use:
 - **callbacks**: `onStart` / `onUpdate` / `onRepeat` / `onComplete` (host-side JS; a DSL document cannot carry functions —
   only reference them if the host resolves them);
 - **fps**: `"fps": 30` for secondary animations (time-based sampling, the curve is unchanged).
+
+**Orchestration & runtime control (host-side, engine ≥ 2.2).** The DSL document describes *what* animates;
+these host APIs decide *when*, and let the app drive playback. Reach for them when the user asks for
+"one after another", "staggered entrance", "play / replay / pause / stop", or a sequence after a click:
+
+- **timeline**: `ice.animationManager.timeline()` →
+  `.add(component, { left: { from, to, duration } }, { at: 0 })`（`at` 是**绝对**毫秒或 `'+=300'`）、
+  `.stagger(components, cfg, { each: 80, at: 200 })`（错峰，等价于每条 `at = 200 + i*80`）、
+  `.play() / .pause() / .resume() / .stop() / .restart()`，以及 `.duration` / `.isPlaying()` / `.finished`（Promise）。
+  它是**调度器**：`play()` 把 `at` 折算成 `delay` 写回组件的 `animations`，推进仍走引擎的动画管线
+  （缓动 / 关键帧 / 量化 / 离屏缓存复用 / 空闲停帧都照样生效）。没写 `at` 的动画保持自己的 `delay`。
+- **运行时挂/摘动画**：`component.setAnimation(key, cfg)` / `component.removeAnimation(key)` —— 不必在构造时
+  声明 `animations`（引擎内部对 `props.animations` 做写时复制；在没声明过的组件上直接改 `props.animations` 会抛异常）。
+- **查询与重播**：`ice.animationManager.replay(component)`、`ice.animationManager.isAnimating(component)`。
+- **无障碍**：动画默认遵守 `prefers-reduced-motion`（引擎直接落终态并记 `ICE_ANIM_REDUCED_MOTION` 诊断）；
+  需要强制播放时用 host 侧 `ice.setReducedMotion(false)`。给"关键信息"做动画前先想清楚这一点。
 
 **Validation feedback (important for agents).** `validateDsl()` returns structured diagnostics alongside
 the legacy `errors` strings:
