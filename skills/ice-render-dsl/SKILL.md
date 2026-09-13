@@ -1,7 +1,7 @@
 ---
 name: ice-render-dsl
 description: Render rich interactive ice-render diagrams from a JSON-first node/edge DSL instead of raw canvas API calls.
-version: "1.0.4"
+version: "1.0.5"
 category: ux
 platforms:
   - claude-code
@@ -273,7 +273,8 @@ There is no generic `layout` field in this DSL. Use explicit coordinates or
 
 ### Runtime requirements
 
-- Node: `ice-render-dsl@>=0.0.5` automatically installs `ice-render`.
+- Node: install `ice-render-dsl@>=0.0.6`; `ice-render@^1.4.11` is a peer
+  dependency (npm 7+ installs peers automatically).
 - Browser: load `ice-render` before `ice-render-dsl`; `ICEDSL` expects the
   global `window.ICE`.
 
