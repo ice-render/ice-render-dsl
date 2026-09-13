@@ -114,7 +114,8 @@ describe('ice-render-dsl 结构化诊断', () => {
           animations: {
             left: { from: 0, to: 100, duration: 300 },
             width: { from: 10, to: 200, duration: 300 }, // 影响派生参数 → 性能警告
-            'style.fillStyle': { from: '#fff', to: '#000', duration: 300 }, // 颜色不可插值 → error
+            'style.fillStyle': { from: '#fff', to: '#000', duration: 300 }, // 颜色**可以**插值（表达力 ⑤）→ 不该报错
+            'style.strokeStyle': { from: 'hello', to: 'world', duration: 300 }, // 真·不可插值（普通字符串）→ error
             opacity: { from: 0, to: 1, duration: 0 }, // 时长非法 → error
           },
         },
@@ -131,6 +132,14 @@ describe('ice-render-dsl 结构化诊断', () => {
     expect(codes).toContain('ICE_ANIM_DURATION_INVALID');
     expect(codes).toContain('ICE_ANIM_VALUE_NOT_INTERPOLATABLE');
     expect(codes).toContain('ICE_ANIM_KEY_AFFECTS_MEASUREMENT');
+    // 颜色自引擎 2.3（表达力 ⑤）起可插值：合法颜色对**不应**出现在「不可插值」诊断里
+    expect(
+      animationDiags.some(
+        (d) => d.code === 'ICE_ANIM_VALUE_NOT_INTERPOLATABLE' && d.path.includes('style.fillStyle')
+      )
+    ).toBe(false);
+    const nonInterpolatable = animationDiags.find((d) => d.code === 'ICE_ANIM_VALUE_NOT_INTERPOLATABLE')!;
+    expect(nonInterpolatable.path).toBe('nodes[0].animations.style.strokeStyle');
     const durationDiag = animationDiags.find((d) => d.code === 'ICE_ANIM_DURATION_INVALID')!;
     expect(durationDiag.path).toBe('nodes[0].animations.opacity');
     expect(durationDiag.severity).toBe('error');
