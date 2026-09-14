@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>ice-render-dsl · 编排（错峰入场 / 播放控制）</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      h1 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      p.hint {
+        margin: 0 0 16px;
+        font-size: 13px;
+        color: #94a3b8;
+      }
+      canvas {
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #334155;
+        display: block;
+      }
+      .bar {
+        margin: 14px 0 0;
+        display: flex;
+        gap: 8px;
+      }
+      button {
+        font: inherit;
+        font-size: 13px;
+        padding: 6px 14px;
+        border-radius: 8px;
+        border: 1px solid #475569;
+        background: #1e293b;
+        color: #e2e8f0;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #334155;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>编排声明化：JSON 里的错峰入场 + 运行时控制</h1>
+    <p class="hint">
+      <code>orchestration.groups.entrance.tracks[]</code> 声明"谁在什么时候播"；按钮走
+      <code>result.orchestration.play('entrance') / pause() / resume() / restart()</code>。
+    </p>
+    <canvas id="canvas" width="900" height="420"></canvas>
+    <div class="bar">
+      <button id="btn-replay">重播入场</button>
+      <button id="btn-pause">暂停</button>
+      <button id="btn-resume">继续</button>
+      <button id="btn-stop">停止</button>
+    </div>
+
+    <script src="../node_modules/ice-render/dist/index.umd.js"></script>
+    <script src="../dist/index.umd.js"></script>
+    <script>
+      // 6 张卡片 + 标题：错峰入场（每张间隔 90ms），随后标题从左淡入。
+      // 注意：动画只声明在**编排轨道**里（没有写进 nodes[].animations），
+      // 否则它会创建即播，编排再播一次 = 双份播放。
+      const dsl = {
+        schemaVersion: 1,
+        nodes: [
+          { id: 'title', type: 'text', left: 40, top: 24, width: 380, height: 34, text: '订单处理流水线', style: { fontSize: 22, fontWeight: 'bold', fillStyle: '#0f172a' } },
+          ...[0, 1, 2, 3, 4, 5].map((i) => ({
+            id: 'card' + i,
+            type: 'rect',
+            left: 40 + (i % 3) * 280,
+            top: 90 + Math.floor(i / 3) * 150,
+            width: 240,
+            height: 120,
+            radius: 12,
+            style: { fillStyle: ['#dbeafe', '#dcfce7', '#fef3c7', '#fee2e2', '#ede9fe', '#cffafe'][i], strokeStyle: '#334155', lineWidth: 1 },
+          })),
+        ],
+        orchestration: {
+          autoplay: 'entrance',
+          groups: {
+            entrance: {
+              tracks: [
+                {
+                  targets: ['card0', 'card1', 'card2', 'card3', 'card4', 'card5'],
+                  at: 0,
+                  each: 90,
+                  animation: { opacity: { from: 0, to: 1, duration: 320 }, top: { from: 60, to: 90, duration: 320 } },
+                },
+                { targets: ['title'], at: '+=150', animation: { opacity: { from: 0, to: 1, duration: 400 } } },
+              ],
+            },
+          },
+        },
+      };
+
+      window.__dsl = dsl;
+      window.__result = ICEDSL.renderDsl('canvas', dsl);
+      const o = window.__result.orchestration;
+      document.getElementById('btn-replay').onclick = () => o.play('entrance');
+      document.getElementById('btn-pause').onclick = () => o.pause();
+      document.getElementById('btn-resume').onclick = () => o.resume();
+      document.getElementById('btn-stop').onclick = () => o.stop();
+    </script>
+  </body>
+</html>

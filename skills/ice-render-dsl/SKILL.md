@@ -1,7 +1,7 @@
 ---
 name: ice-render-dsl
 description: Render rich interactive ice-render diagrams from a JSON-first node/edge DSL instead of raw canvas API calls.
-version: "1.0.9"
+version: "1.0.10"
 category: ux
 platforms:
   - claude-code
@@ -215,8 +215,62 @@ Other knobs that are safe to use:
   only reference them if the host resolves them);
 - **fps**: `"fps": 30` for secondary animations (time-based sampling, the curve is unchanged).
 
-**Orchestration & runtime control (host-side, engine ≥ 2.3).** The DSL document describes *what* animates;
-these host APIs decide *when*, and let the app drive playback. Reach for them when the user asks for
+**Orchestration in the document (this package, since 0.0.9).** Prefer declaring the sequence *in the DSL*
+rather than making the host write imperative code. `nodes[].animations` only says how one animation runs;
+the top-level `orchestration` block says **when** each one plays and how the group is triggered:
+
+```json
+{
+  "schemaVersion": 1,
+  "nodes": [
+    { "id": "card1", "type": "rect", "left": 40, "top": 90, "width": 240, "height": 120 },
+    { "id": "card2", "type": "rect", "left": 320, "top": 90, "width": 240, "height": 120 }
+  ],
+  "orchestration": {
+    "autoplay": "entrance",
+    "groups": {
+      "entrance": {
+        "tracks": [
+          { "targets": ["card1", "card2"], "at": 0, "each": 90,
+            "animation": { "opacity": { "from": 0, "to": 1, "duration": 320 } } },
+          { "targets": ["card1"], "at": "+=150",
+            "animation": { "left": { "from": 40, "to": 160, "duration": 500, "easing": "easeOutCubic" } } }
+        ]
+      }
+    }
+  }
+}
+```
+
+Rules that keep it predictable:
+
+- `targets` must be node ids that exist (single target → `timeline.add`; multiple → `timeline.stagger` with `each` as the step).
+- `at` is absolute milliseconds or a relative moment `'+=N'`; `each` is the stagger gap (default `0` = simultaneous).
+- `autoplay` names the group to play right after rendering. Other groups stay idle until the host plays them.
+- **Don't declare the same animation key both in `nodes[].animations` and in a track** — the node-level one starts
+  immediately, so you would play it twice.
+- It compiles onto the engine's `animationManager.timeline()` (a *scheduler*, not a second evaluator), so easing /
+  keyframes / device-pixel quantization / bitmap reuse / idle-parking frames all apply unchanged.
+- Structural mistakes get stable codes you can self-repair: `ICE_DSL_ORCHESTRATION_INVALID`,
+  `ICE_DSL_ORCHESTRATION_TARGET_UNKNOWN`, `ICE_DSL_ORCHESTRATION_TIME_INVALID`, `ICE_DSL_ORCHESTRATION_GROUP_UNKNOWN`
+  (animation-config errors are still forwarded as `ICE_ANIM_*`, with the path pointing inside the track).
+
+The result carries a handle:
+
+```js
+const result = ICEDSL.renderDsl('canvas', dsl);
+result.orchestration.groups;               // ['entrance']
+result.orchestration.play('entrance');     // 第一次 = 播放；之后 = 从头重播
+result.orchestration.pause();              // 作用于最近播放的组（也可显式传组名）
+result.orchestration.resume();
+result.orchestration.stop();
+result.orchestration.restart();
+result.orchestration.finished('entrance'); // Promise（播完时 resolve）
+```
+
+**Host-side runtime control (engine ≥ 2.3), for what a document can't express.** If the sequence depends on app
+state, drive it from the host instead —— these are exactly the primitives the DSL block compiles onto.
+Reach for them when the user asks for
 "one after another", "staggered entrance", "play / replay / pause / stop", or a sequence after a click:
 
 - **timeline**: `ice.animationManager.timeline()` →
