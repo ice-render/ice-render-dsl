@@ -66,3 +66,16 @@ Return **one** JSON document, nothing else（不要包 HTML、不要写 `new ICE
 
 完整的字段清单、样式/文本/动画/编排手册与"性能友好"写法，见本仓的
 `skills/ice-render-dsl/SKILL.md`（那份是权威说明；本提示词只保证方向不跑偏）。
+
+## 主题与样式（引擎 2.4 起）
+
+用户提到「品牌色 / 暗色 / 多租户 / 换肤」时，**不要往每个图元里硬写颜色**：
+
+- 用 `token('primary')`（或 `'$primary'` / `'$chrome.slot.fill'`）写样式 —— 引擎在绘制那一刻解析，
+  `ice.setTheme()` 之后整张图跟着换；渐变 stops 也能引用。
+- 主题入口：`ice.setTheme('dark')` / `registerTheme(name, mergeThemes(DEFAULT_THEME, {...}))` /
+  部分主题 `setTheme({ primary, base: { radius: {...} } })`（深合并）/ 只改外壳 `setChrome({...})` /
+  子树作用域 `new ICEGroup({ theme: {...} })`。
+- 交互反馈用 `states: { hover, active, selected, disabled }` + `setInteractionState()`；
+  需要引擎自动驱动 hover/active 时再开 `enableInteractionStates()`（默认关，有命中测试开销）。
+- 生成完用 `ice.validateTheme()` 自检（未知 token / 类型错 / 对比度不足都会给诊断）。
