@@ -47,13 +47,17 @@ import { validateDsl, compileDsl, renderDsl } from 'ice-render-dsl';
 ## API
 
 - `validateDsl(dsl)`
-- `compileDsl(dsl)`
+- `compileDsl(dsl)` / `buildOrchestrationPlan(dsl)`
 - `renderDsl(canvasOrId, dsl)`
 - `DSL_SCHEMA_VERSION`
+- `DSL_DIAGNOSTIC_CODES` / `ORCHESTRATION_CODES`
 
 ## Example
 
-Open `examples/entity-editor-dsl.html` after building.
+Build first, then open in a browser:
+
+- `examples/core-dsl.html` —— 最小节点/连线示例；
+- `examples/orchestration.html` —— **编排**：用 JSON 声明错峰入场，并带播放 / 暂停 / 继续 / 重播按钮。
 
 ## Agent discovery
 
@@ -62,6 +66,10 @@ Agents can use this project through:
 1. npm package exports
 2. `AGENTS.md`
 3. `skills/ice-render-dsl/SKILL.md`
-4. optional MCP wrapper in a separate package
+4. `prompts/agent-prompt.md` —— 短版系统提示词（输出契约 + 自检清单）
+5. optional MCP wrapper in a separate package
 
 The core runtime does not require MCP.
+
+> 文档里的 JSON 例子由 `tests/skill-examples.test.ts` 自动校验：示例一旦不合法（字段写错、节点 id 悬空、
+> 编排 `targets` 指错），测试就会红 —— 保证 Agent 照抄的是"能跑的文档"。
