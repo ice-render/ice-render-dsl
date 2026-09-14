@@ -200,6 +200,10 @@ export function renderDsl(canvasOrId: any, dsl: DslDocument): RenderDslResult {
   }
 
   const ice: any = new ICE().init(canvasOrId, initOptions);
+  // 主题要在建图元之前应用：preset 与"没写 style"的默认样式都是在构造时按主题展开的
+  if (dsl.theme && typeof ice.setTheme === 'function') {
+    ice.setTheme(dsl.theme as any);
+  }
   const nodeMap = new Map<string, any>();
 
   scene.nodes.forEach((node: any) => {

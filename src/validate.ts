@@ -40,6 +40,9 @@ const PORTS = ['T', 'R', 'B', 'L', 'C'] as const;
  */
 export const DSL_DIAGNOSTIC_CODES = {
   ROOT_NOT_OBJECT: 'ICE_DSL_ROOT_NOT_OBJECT',
+  THEME_INVALID: 'ICE_DSL_THEME_INVALID',
+  THEME_NAME_UNKNOWN: 'ICE_DSL_THEME_NAME_UNKNOWN',
+  THEME_TOKEN_UNKNOWN: 'ICE_DSL_THEME_TOKEN_UNKNOWN',
   SCHEMA_VERSION_UNSUPPORTED: 'ICE_DSL_SCHEMA_VERSION_UNSUPPORTED',
   NODES_NOT_ARRAY: 'ICE_DSL_NODES_NOT_ARRAY',
   NODE_NOT_OBJECT: 'ICE_DSL_NODE_NOT_OBJECT',
@@ -325,6 +328,9 @@ export function validateDsl(dsl: DslDocument): DslValidationResult {
     );
   }
 
+  // 主题：先看形态，再看命名主题是否注册、样式里的 token 引用能不能解析
+  const themeContext = validateThemeField(dsl, out);
+
   const ids = new Set<string>();
   if (!Array.isArray(dsl.nodes)) {
     out.fail(DSL_DIAGNOSTIC_CODES.NODES_NOT_ARRAY, 'nodes', 'nodes must be an array');
@@ -396,4 +402,72 @@ export function validateDsl(dsl: DslDocument): DslValidationResult {
   collectOrchestrationDiagnostics(dsl, ids, out);
 
   return { valid: out.valid, errors: out.errors, diagnostics: out.diagnostics };
+}
+
+/**
+ * 校验 `theme` 字段，并返回"这个文档生效后的主题"，供样式里的 token 引用做存在性检查。
+ *
+ * 三条诊断：
+ * - `THEME_INVALID`：theme 既不是字符串也不是对象（引擎只认这两种）；
+ * - `THEME_NAME_UNKNOWN`：写了命名主题但引擎注册表里没有（引擎会静默回退 default —— 这是最容易踩的坑）；
+ * - `THEME_TOKEN_UNKNOWN`：样式里 `'$xxx'` 这类引用在主题里解析不出来（引擎遇到会**跳过赋值**，
+ *   视觉上就是"颜色没生效但不报错"）。
+ */
+function validateThemeField(dsl: DslDocument, out: any): any {
+  const engine: any = ICEEngine;
+  const registered: string[] = typeof engine.listThemes === 'function' ? engine.listThemes() : ['default', 'dark'];
+  const theme = (dsl as any).theme;
+  let effective: any = null;
+  if (theme !== undefined) {
+    if (typeof theme === 'string') {
+      if (registered.indexOf(theme) < 0) {
+        out.warn(
+          DSL_DIAGNOSTIC_CODES.THEME_NAME_UNKNOWN,
+          'theme',
+          `theme "${theme}" is not registered; the engine will silently fall back to the default theme. Available: ${registered.join(', ')}`
+        );
+      } else {
+        effective = typeof engine.getRegisteredTheme === 'function' ? engine.getRegisteredTheme(theme) : null;
+      }
+    } else if (theme && typeof theme === 'object' && !Array.isArray(theme)) {
+      const base = typeof engine.getTheme === 'function' ? engine.getTheme() : null;
+      effective = base && typeof engine.mergeThemes === 'function' ? engine.mergeThemes(base, theme) : base;
+    } else {
+      out.fail(
+        DSL_DIAGNOSTIC_CODES.THEME_INVALID,
+        'theme',
+        'theme must be a registered theme name (string) or a partial theme object'
+      );
+    }
+  } else if (typeof engine.getTheme === 'function') {
+    effective = engine.getTheme();
+  }
+
+  // 样式里的 token 引用：`'$primary'` / `'$chrome.slot.fill'`
+  if (effective && typeof engine.tokenValue === 'function') {
+    const checkStyle = (style: any, path: string) => {
+      if (!style || typeof style !== 'object') return;
+      Object.keys(style).forEach((key) => {
+        const value = style[key];
+        if (typeof value !== 'string' || value.charAt(0) !== '$' || value.length < 2) return;
+        if (engine.tokenValue(value.slice(1), effective) === undefined) {
+          out.warn(
+            DSL_DIAGNOSTIC_CODES.THEME_TOKEN_UNKNOWN,
+            `${path}.${key}`,
+            `style token "${value}" does not exist in the effective theme; the engine will skip this assignment`
+          );
+        }
+      });
+    };
+    const walk = (node: any, path: string) => {
+      if (!node || typeof node !== 'object') return;
+      checkStyle(node.style, `${path}.style`);
+      if (Array.isArray(node.children)) {
+        node.children.forEach((child: any, index: number) => walk(child, `${path}.children[${index}]`));
+      }
+    };
+    (dsl.nodes || []).forEach((node: any, index: number) => walk(node, `nodes[${index}]`));
+    (dsl.edges || []).forEach((edge: any, index: number) => checkStyle(edge.style, `edges[${index}].style`));
+  }
+  return effective;
 }
