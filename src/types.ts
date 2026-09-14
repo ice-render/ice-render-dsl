@@ -106,6 +106,54 @@ export type DslDocument = {
   nodes: DslNode[];
   edges?: DslEdge[];
   options?: DslDocumentOptions;
+  /** 编排（声明式）：见 {@link DslOrchestration}。不写则行为与从前完全一致（动画创建即播）。 */
+  orchestration?: DslOrchestration;
+};
+
+/**
+ * 声明式编排（v1）。
+ *
+ * 背景：每个节点的 `animations` 只能描述"这条动画自己怎么动、延迟多久"，跨节点的时序（先 A 后 B、
+ * 每隔 80ms 依次入场）只能靠调用方手算 `delay`；而播放/暂停/重播这类运行时控制**完全表达不了**。
+ * 编排块把这层补上：JSON 声明"什么时候播、按什么节奏播"，运行时仍由引擎
+ * `animationManager.timeline()`（调度器）执行 —— 缓动/关键帧/量化/缓存复用/空闲停帧/诊断全部自动生效。
+ *
+ * ```json
+ * "orchestration": {
+ *   "autoplay": "entrance",
+ *   "groups": {
+ *     "entrance": {
+ *       "tracks": [
+ *         { "targets": ["card1", "card2"], "at": 0, "each": 80,
+ *           "animation": { "opacity": { "from": 0, "to": 1, "duration": 300 } } },
+ *         { "targets": ["card1"], "at": "+=200",
+ *           "animation": { "left": { "from": 40, "to": 160, "duration": 500 } } }
+ *       ]
+ *     }
+ *   }
+ * }
+ * ```
+ */
+export type DslOrchestrationTrack = {
+  /** 目标节点 id 列表（必须在 `nodes` 里存在）。单目标走 `timeline.add`，多目标走 `timeline.stagger`。 */
+  targets: string[];
+  /** 起点：绝对毫秒（≥0）或相对时刻 `'+=N'`。默认 0。 */
+  at?: number | string;
+  /** 多目标之间的错峰间隔（毫秒，≥0，默认 0 = 同时）。 */
+  each?: number;
+  /** 要施加的动画配置，键与 `nodes[].animations` 完全一致（如 `opacity` / `left` / `transform.translate`）。 */
+  animation: Record<string, any>;
+};
+
+export type DslOrchestrationGroup = {
+  tracks: DslOrchestrationTrack[];
+};
+
+export type DslOrchestration = {
+  /** 渲染完成后自动播放哪个组（组名必须存在）。不写则不自动播放。 */
+  autoplay?: string;
+  /** 命名编排组：宿主可用 `handle.orchestration.play('组名')` 触发。 */
+  groups: Record<string, DslOrchestrationGroup>;
 };
 
 /**

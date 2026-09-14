@@ -59,6 +59,23 @@ export const DSL_DIAGNOSTIC_CODES = {
 } as const;
 
 /**
+ * 编排（`orchestration`）的结构诊断码。
+ *
+ * 与动画配置本身相关的错误仍由引擎出码（`ICE_ANIM_*`），本包只把它们转述并补上轨道路径 ——
+ * 两个来源用不同的前缀区分，Agent 一眼就能判断"是我把 JSON 写错了"还是"动画参数不合法"。
+ */
+export const ORCHESTRATION_CODES = {
+  /** 结构与类型错误：groups/tracks/targets/animation 的形状不对。 */
+  INVALID: 'ICE_DSL_ORCHESTRATION_INVALID',
+  /** targets 引用了不存在的节点 id。 */
+  TARGET_UNKNOWN: 'ICE_DSL_ORCHESTRATION_TARGET_UNKNOWN',
+  /** at / each 取值非法（at 只接受 ≥0 的数字或 `'+=N'`；each 只接受 ≥0 的数字）。 */
+  TIME_INVALID: 'ICE_DSL_ORCHESTRATION_TIME_INVALID',
+  /** autoplay 指向了不存在的组。 */
+  GROUP_UNKNOWN: 'ICE_DSL_ORCHESTRATION_GROUP_UNKNOWN',
+} as const;
+
+/**
  * 收集器：同时产出**结构化诊断**（Agent 用）与**历史 errors 字符串**（既有调用方用）。
  * 两者由同一个 `fail()` 产出，永远不会各说各话。
  */
@@ -168,6 +185,132 @@ function collectAnimationDiagnostics(node: DslNode, out: ValidationCollector, pr
   });
 }
 
+/**
+ * 编排块的校验（`orchestration.groups.<name>.tracks[]`）。
+ *
+ * 与节点动画同源：动画配置的错误由引擎出 `ICE_ANIM_*`，这里只负责把它转述到**轨道路径**上
+ * （`orchestration.groups.g.tracks[0].animation.opacity`），并补上编排自己的结构/引用/时序检查。
+ */
+function collectOrchestrationDiagnostics(dsl: DslDocument, ids: Set<string>, out: ValidationCollector): void {
+  const orchestration: any = (dsl as any).orchestration;
+  if (orchestration === undefined) {
+    return; // 不写编排 = 保持旧行为，不是错误
+  }
+  const base = 'orchestration';
+  if (!orchestration || typeof orchestration !== 'object' || Array.isArray(orchestration)) {
+    out.fail(ORCHESTRATION_CODES.INVALID, base, `${base} must be an object`);
+    return;
+  }
+  const groups = orchestration.groups;
+  if (!groups || typeof groups !== 'object' || Array.isArray(groups)) {
+    out.fail(ORCHESTRATION_CODES.INVALID, `${base}.groups`, `${base}.groups must be an object`);
+    return;
+  }
+
+  const engineValidate: any = (ICEEngine as any).validateAnimations;
+
+  for (const [groupName, group] of Object.entries<any>(groups)) {
+    const groupPath = `${base}.groups.${groupName}`;
+    const tracks = group && group.tracks;
+    if (!Array.isArray(tracks)) {
+      out.fail(ORCHESTRATION_CODES.INVALID, `${groupPath}.tracks`, `${groupPath}.tracks must be an array`);
+      continue;
+    }
+
+    tracks.forEach((track: any, index: number) => {
+      const trackPath = `${groupPath}.tracks[${index}]`;
+      if (!track || typeof track !== 'object') {
+        out.fail(ORCHESTRATION_CODES.INVALID, trackPath, `${trackPath} must be an object`);
+        return;
+      }
+
+      // targets：必须是非空字符串数组，且每个 id 都已在 nodes 里出现
+      if (!Array.isArray(track.targets) || !track.targets.length) {
+        out.fail(ORCHESTRATION_CODES.INVALID, `${trackPath}.targets`, `${trackPath}.targets must be a non-empty array`);
+      } else {
+        track.targets.forEach((target: any, targetIndex: number) => {
+          const targetPath = `${trackPath}.targets[${targetIndex}]`;
+          if (typeof target !== 'string' || !target.trim()) {
+            out.fail(ORCHESTRATION_CODES.INVALID, targetPath, `${targetPath} must be a non-empty string`);
+          } else if (!ids.has(target)) {
+            out.fail(
+              ORCHESTRATION_CODES.TARGET_UNKNOWN,
+              targetPath,
+              `${targetPath} references an unknown node: ${target}`
+            );
+          }
+        });
+      }
+
+      // at：绝对毫秒（≥0）或相对时刻 `'+=N'`
+      if (track.at !== undefined) {
+        const atPath = `${trackPath}.at`;
+        const isNumber = typeof track.at === 'number' && Number.isFinite(track.at) && track.at >= 0;
+        const isRelative = typeof track.at === 'string' && /^\+=(\d+(\.\d+)?)$/.test(track.at.trim());
+        if (!isNumber && !isRelative) {
+          out.fail(
+            ORCHESTRATION_CODES.TIME_INVALID,
+            atPath,
+            `${atPath} must be a number ≥ 0 or a relative moment like '+=300'`
+          );
+        }
+      }
+
+      // each：错峰间隔，≥0 的数字
+      if (track.each !== undefined) {
+        const eachPath = `${trackPath}.each`;
+        const isNumber = typeof track.each === 'number' && Number.isFinite(track.each) && track.each >= 0;
+        if (!isNumber) {
+          out.fail(ORCHESTRATION_CODES.TIME_INVALID, eachPath, `${eachPath} must be a number ≥ 0`);
+        }
+      }
+
+      // animation：形状检查 + 引擎的动画诊断转述（路径补到轨道里）
+      if (!track.animation || typeof track.animation !== 'object' || Array.isArray(track.animation)) {
+        out.fail(ORCHESTRATION_CODES.INVALID, `${trackPath}.animation`, `${trackPath}.animation must be an object`);
+        return;
+      }
+      if (typeof engineValidate === 'function') {
+        // 多目标可能类型不同：只有"所有目标同类型"时才用该类型的组件类做性能提示，
+        // 否则用保守口径（不给 ICE_ANIM_KEY_AFFECTS_MEASUREMENT，避免误报）。
+        const targetTypes = new Set(
+          (Array.isArray(track.targets) ? track.targets : [])
+            .map((id: string) => (dsl as any).nodes?.find?.((n: any) => n.id === id)?.type)
+            .filter(Boolean)
+        );
+        const componentCtor =
+          targetTypes.size === 1 ? NODE_TYPE_TO_COMPONENT[String([...targetTypes][0])] || ICERect : ICERect;
+        const isSafeKey = (path: string): boolean => {
+          const staticCheck = (componentCtor as any).isAnimationSafeKeyFor || (ICEComponent as any).isAnimationSafeKeyFor;
+          return typeof staticCheck === 'function' ? staticCheck(componentCtor, path) : true;
+        };
+        engineValidate(track.animation, { isSafeKey }).forEach((diagnostic: any) => {
+          const path = diagnostic.path ? `${trackPath}.animation.${diagnostic.path}` : `${trackPath}.animation`;
+          if (diagnostic.severity === 'warning') {
+            out.warn(diagnostic.code, path, diagnostic.message);
+          } else {
+            out.fail(diagnostic.code, path, diagnostic.message);
+          }
+        });
+      }
+    });
+  }
+
+  // autoplay 必须指向存在的组
+  if (orchestration.autoplay !== undefined) {
+    const autoplayPath = `${base}.autoplay`;
+    if (typeof orchestration.autoplay !== 'string' || !orchestration.autoplay.trim()) {
+      out.fail(ORCHESTRATION_CODES.GROUP_UNKNOWN, autoplayPath, `${autoplayPath} must be a non-empty string`);
+    } else if (!Object.prototype.hasOwnProperty.call(groups, orchestration.autoplay)) {
+      out.fail(
+        ORCHESTRATION_CODES.GROUP_UNKNOWN,
+        autoplayPath,
+        `${autoplayPath} references an unknown group: ${orchestration.autoplay}`
+      );
+    }
+  }
+}
+
 export function validateDsl(dsl: DslDocument): DslValidationResult {
   const out = new ValidationCollector();
   if (!dsl || typeof dsl !== 'object' || Array.isArray(dsl)) {
@@ -248,6 +391,9 @@ export function validateDsl(dsl: DslDocument): DslValidationResult {
       }
     });
   }
+
+  // 编排放在最后：它要引用节点 id（`ids` 已经收齐）
+  collectOrchestrationDiagnostics(dsl, ids, out);
 
   return { valid: out.valid, errors: out.errors, diagnostics: out.diagnostics };
 }

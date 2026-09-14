@@ -15,12 +15,32 @@ import {
 } from 'ice-render';
 import type { DslDocument } from '../types';
 import { compileDsl } from '../compiler/dslToScene';
+import { buildOrchestrationPlan } from '../compiler/orchestration';
 import { validateDsl } from '../validate';
 
 export type RenderDslResult = {
   ice: any;
   nodes: any[];
   edges: any[];
+  /**
+   * 编排句柄：只有文档里写了 `orchestration` 才有实质内容。
+   *
+   * 每个组一条**独立的** timeline（引擎的调度器），所以 `play('entrance')` 只播这一组。
+   * `pause/resume/stop/restart/finished` 默认作用于"最近一次播放的组"，也可以显式传组名。
+   */
+  orchestration: {
+    /** 组名列表（声明顺序）。 */
+    groups: string[];
+    play(group: string): boolean;
+    pause(group?: string): boolean;
+    resume(group?: string): boolean;
+    stop(group?: string): boolean;
+    restart(group?: string): boolean;
+    /** 该组播完的 Promise（引擎 timeline.finished）；没有这个组时返回 null。 */
+    finished(group?: string): Promise<void> | null;
+    /** 当前（最近一次播放的）组名。 */
+    active: string | null;
+  };
 };
 
 function propsForNode(node: any): any {
@@ -199,9 +219,91 @@ export function renderDsl(canvasOrId: any, dsl: DslDocument): RenderDslResult {
     fitViewport(ice, [...nodeMap.values()], options.fitViewportPadding);
   }
 
+  // ---- 编排：把纯数据的计划翻译成引擎 timeline 调用 ----
+  //
+  // 关键设计：**不引入第二套求值路径**。JSON 只描述"什么时候播、按什么节奏播"，
+  // 推进仍由引擎的 AnimationManager 每帧完成 —— 缓动/关键帧/量化/位图缓存复用/空闲停帧/
+  // 运行期诊断全部自动继承（见 ice-render 18 §3.1 与 07）。
+  const plan = buildOrchestrationPlan(dsl);
+  const timelines = new Map<string, any>();
+  /** 已经播放过的组（用于把"再次 play"解释成"重播"）。 */
+  const played = new Set<string>();
+  const manager: any = ice.animationManager;
+
+  const resolveTargets = (ids: string[]): any[] =>
+    ids.map((id) => nodeMap.get(id)).filter((component) => !!component);
+
+  for (const [group, steps] of Object.entries(plan.groups)) {
+    const timeline = manager.timeline();
+    for (const step of steps) {
+      const targets = resolveTargets(step.targets);
+      if (!targets.length) continue;
+      if (step.kind === 'stagger') {
+        timeline.stagger(targets, step.animation, { each: step.each, at: step.at });
+      } else {
+        timeline.add(targets[0], step.animation, { at: step.at });
+      }
+    }
+    timelines.set(group, timeline);
+  }
+
+  const orchestration: RenderDslResult['orchestration'] = {
+    groups: [...timelines.keys()],
+    active: null,
+    play(group: string): boolean {
+      const timeline = timelines.get(group);
+      if (!timeline) return false;
+      orchestration.active = group;
+      // 第二次及以后再 play 同一个组 = "重播"：走 restart() 明确回到起点。
+      // 这样即使宿主引擎是 2.3.0/2.3.1（`ANIM` 时间轴播完后 play() 会被早退分支吞掉，2.3.2 已修），
+      // 重播按钮也照常工作 —— 不把 DSL 的正确性绑在引擎补丁版的发布顺序上。
+      if (played.has(group)) {
+        timeline.restart();
+      } else {
+        played.add(group);
+        timeline.play();
+      }
+      return true;
+    },
+    pause(group?: string): boolean {
+      const timeline = timelines.get(group || orchestration.active || '');
+      if (!timeline) return false;
+      timeline.pause();
+      return true;
+    },
+    resume(group?: string): boolean {
+      const timeline = timelines.get(group || orchestration.active || '');
+      if (!timeline) return false;
+      timeline.resume();
+      return true;
+    },
+    stop(group?: string): boolean {
+      const timeline = timelines.get(group || orchestration.active || '');
+      if (!timeline) return false;
+      timeline.stop();
+      return true;
+    },
+    restart(group?: string): boolean {
+      const timeline = timelines.get(group || orchestration.active || '');
+      if (!timeline) return false;
+      orchestration.active = group || orchestration.active;
+      timeline.restart();
+      return true;
+    },
+    finished(group?: string): Promise<void> | null {
+      const timeline = timelines.get(group || orchestration.active || '');
+      return timeline ? timeline.finished : null;
+    },
+  };
+
+  if (plan.autoplay) {
+    orchestration.play(plan.autoplay);
+  }
+
   return {
     ice,
     nodes: [...nodeMap.values()],
     edges: edgeComponents,
+    orchestration,
   };
 }

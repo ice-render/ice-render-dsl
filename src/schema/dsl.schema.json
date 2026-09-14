@@ -70,6 +70,43 @@
         "fitViewport": { "type": "boolean" },
         "fitViewportPadding": { "type": "number" }
       }
+    },
+    "orchestration": {
+      "description": "声明式编排：JSON 里描述'什么时候播、按什么节奏播'，编译到引擎 animationManager.timeline()。",
+      "type": "object",
+      "properties": {
+        "autoplay": { "type": "string", "description": "渲染后自动播放的组名" },
+        "groups": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["tracks"],
+            "properties": {
+              "tracks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["targets", "animation"],
+                  "properties": {
+                    "targets": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": { "type": "string" },
+                      "description": "目标节点 id；单目标走 add，多目标走 stagger"
+                    },
+                    "at": {
+                      "description": "绝对毫秒（≥0）或相对时刻 '+=N'",
+                      "oneOf": [{ "type": "number", "minimum": 0 }, { "type": "string", "pattern": "^\\+=\\s*\\d+(\\.\\d+)?$" }]
+                    },
+                    "each": { "type": "number", "minimum": 0, "description": "多目标错峰间隔（毫秒），默认 0 = 同时" },
+                    "animation": { "type": "object", "description": "与 nodes[].animations 同构的动画配置" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "additionalProperties": true
