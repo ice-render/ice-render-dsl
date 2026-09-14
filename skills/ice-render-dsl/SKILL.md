@@ -1,7 +1,7 @@
 ---
 name: ice-render-dsl
 description: Render rich interactive ice-render diagrams from a JSON-first node/edge DSL instead of raw canvas API calls — flowcharts, topologies, grouped panels, orthogonal/bezier/marching-ants connectors, keyframe animations and declarative orchestration, with structured diagnostics for self-repair.
-version: "1.2.0"
+version: "1.3.0"
 category: ux
 platforms:
   - claude-code
@@ -435,6 +435,19 @@ Explicit geometry:
 
 场景一旦要体现「品牌 / 暗色 / 多租户」，不要往每个图元里硬写颜色 —— 引擎有一套主题机制，
 **样式可以引用主题 token，在绘制那一刻解析**，所以 `setTheme()` 之后整张图跟着换。
+
+**在 DSL 里直接声明**（推荐，因为它跟着文档走）：
+
+```json
+{
+  "schemaVersion": 1,
+  "theme": "dark",
+  "nodes": [{ "id": "a", "type": "rect", "width": 40, "height": 24, "style": { "fillStyle": "$primary" } }]
+}
+```
+
+`theme` 也可以是部分主题：`{ "primary": "#0d6efd" }` 或 `{ "semantic": { "primary": "#0d6efd" } }`。
+`validateDsl()` 会替你查三件事：命名主题有没有注册、样式里的 `"$token"` 能不能解析、`theme` 形态对不对。
 
 ```ts
 import { token, registerTheme, mergeThemes, DEFAULT_THEME } from 'ice-render';

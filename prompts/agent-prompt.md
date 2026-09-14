@@ -71,7 +71,9 @@ Return **one** JSON document, nothing else（不要包 HTML、不要写 `new ICE
 
 用户提到「品牌色 / 暗色 / 多租户 / 换肤」时，**不要往每个图元里硬写颜色**：
 
-- 用 `token('primary')`（或 `'$primary'` / `'$chrome.slot.fill'`）写样式 —— 引擎在绘制那一刻解析，
+- **优先在 DSL 顶层声明**：`"theme": "dark"`（命名主题）或 `"theme": { "primary": "#0d6efd" }`（部分主题）——
+  它跟着文档走、可序列化；生成后用 `validateDsl()` 会被自动检查（未注册主题 / 拼错的 token）。
+- 样式里用 `"$primary"` / `"$chrome.slot.fill"` 这类 token 引用 —— 引擎在绘制那一刻解析，
   `ice.setTheme()` 之后整张图跟着换；渐变 stops 也能引用。
 - 主题入口：`ice.setTheme('dark')` / `registerTheme(name, mergeThemes(DEFAULT_THEME, {...}))` /
   部分主题 `setTheme({ primary, base: { radius: {...} } })`（深合并）/ 只改外壳 `setChrome({...})` /

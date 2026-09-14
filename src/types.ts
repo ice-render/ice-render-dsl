@@ -105,6 +105,17 @@ export type DslDocument = {
   schemaVersion?: number;
   nodes: DslNode[];
   edges?: DslEdge[];
+  /**
+   * 主题（引擎 2.4 起）。
+   *
+   * - 字符串：命名主题（内置 `default` / `dark`，或应用层 `registerTheme` 注册的名字）；
+   * - 对象：**部分主题**，深合并到当前实例主题 —— 平铺写法 `{ primary: '#0d6efd' }`、
+   *   显式分层 `{ semantic: { primary } }`、深层局部 `{ motion: { duration: { fast: 50 } } }` 都支持。
+   *
+   * 图元样式里可以直接引用 token：`"style": { "fillStyle": "$primary", "strokeStyle": "$chrome.slot.fill" }`
+   * —— 引擎在绘制那一刻解析，所以换主题时整张图跟着换（见 SKILL 的 Theming 一节）。
+   */
+  theme?: string | Record<string, any>;
   options?: DslDocumentOptions;
   /** 编排（声明式）：见 {@link DslOrchestration}。不写则行为与从前完全一致（动画创建即播）。 */
   orchestration?: DslOrchestration;
