@@ -1,7 +1,7 @@
 ---
 name: ice-render-dsl
 description: Render rich interactive ice-render diagrams from a JSON-first node/edge DSL instead of raw canvas API calls — flowcharts, topologies, grouped panels, orthogonal/bezier/marching-ants connectors, keyframe animations and declarative orchestration, with structured diagnostics for self-repair.
-version: "1.1.0"
+version: "1.2.0"
 category: ux
 platforms:
   - claude-code
@@ -431,6 +431,44 @@ Explicit geometry:
 }
 ```
 
+## Theming（引擎 2.4 起）
+
+场景一旦要体现「品牌 / 暗色 / 多租户」，不要往每个图元里硬写颜色 —— 引擎有一套主题机制，
+**样式可以引用主题 token，在绘制那一刻解析**，所以 `setTheme()` 之后整张图跟着换。
+
+```ts
+import { token, registerTheme, mergeThemes, DEFAULT_THEME } from 'ice-render';
+
+ice.setTheme('dark');                                   // 内置：default / dark
+ice.registerTheme('brand', mergeThemes(DEFAULT_THEME, {
+  semantic: { primary: '#0d6efd' },
+}));
+ice.setTheme('brand');
+ice.setTheme({ primary: '#0d6efd', base: { radius: { md: 6 } } });  // 部分主题（深合并）
+ice.setChrome({ handle: { fill: '#0d6efd' } });          // 只改交互外壳（选中框 / 手柄 / 插槽 / 引导线）
+
+new ICERect({ style: { fillStyle: token('primary'), strokeStyle: '$border' } });
+```
+
+要点（写文档 / 生成代码时用得上的部分）：
+
+- 四层：`base`（色 ramp / spacing / radius / fontSize）→ `semantic`（primary / text / border /
+  background / palette / motion / **chrome**）→ `chrome`（引擎自己画的那层：选中框 / 手柄 /
+  连接插槽 / 对齐引导线 / 连线标签 / 文本选区 / 阴影色）→ 组件预设。
+- 引用写法两种：`token('primary')`（推荐，纯对象可序列化）或字符串简写 `'$primary'` /
+  `'$palette.2'` / `'$chrome.slot.fill'` / `'$base.radius.md'`；渐变 stops 也能引用。
+- 交互状态：`states: { hover, active, selected, disabled, focus }` +
+  `component.setInteractionState('selected', true)`；引擎可选自动驱动
+  `ice.enableInteractionStates()`（默认关闭 —— 它会为每次指针移动加一次命中测试）。
+- 子树作用域：`new ICEGroup({ theme: { ... } })` 只影响这棵子树。
+- 主题会进快照（`{ theme: { name, patch } }`，patch 是相对命名主题的真实差异），
+  所以「存盘 → 载入」之后新加图元仍然对得上主题。
+- 自检：`ice.validateTheme()` 会给未知 token / 类型错误 / **WCAG 对比度不足**的诊断；
+  token 名拼错时引擎**跳过赋值**（不会把画布涂成 undefined），所以别指望它报错，用校验器查。
+
+> 什么时候**不要**用主题：一次性演示页、颜色本来就是数据的一部分（如按数据分色的热力图），
+> 直接写字面量更清楚。主题解决的是「同一套图形要在多套视觉身份下复用」。
+
 ## Rendering options
 
 ```json
@@ -459,7 +497,8 @@ There is no generic `layout` field in this DSL. Use explicit coordinates or
 
 ### Runtime requirements
 
-- Node: install `ice-render-dsl@>=0.0.8`; `ice-render@^2.3.0` is a peer
+- Node: install `ice-render-dsl@>=0.0.8`; `ice-render@^2.4.0` is recommended
+  (peer range is `^2.3.0`; the theming section above needs 2.4)
   dependency (npm 7+ installs peers automatically).
 - Browser: load `ice-render` before `ice-render-dsl`; `ICEDSL` expects the
   global `window.ICE`.
