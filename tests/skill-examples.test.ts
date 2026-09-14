@@ -82,6 +82,22 @@ describe('SKILL / 提示词里的 JSON 例子', () => {
           expect(typeof fragment).toBe('object');
         });
       });
+
+      /**
+       * 跨包契约防呆：`entities` / `relations`（+ `fields`）是 **ice-entity-designer-dsl** 的顶层字段。
+       *
+       * 这条规则来自一次真实事故：`prompts/agent-prompt.md` 曾经整份写成 ER 契约，
+       * 而它本身是"合法 JSON"，靠 JSON/校验都发现不了 —— Agent 照着抄出来的文档在本包会被直接拒绝。
+       * 现在文档里只要出现这些字段就红。
+       */
+      it('不得混入其它包的顶层字段（entities / relations / fields）', () => {
+        const offenders = blocks
+          .map((block, index) => ({ index, doc: JSON.parse(block) }))
+          .filter(({ doc }) => doc && typeof doc === 'object' && !Array.isArray(doc))
+          .filter(({ doc }) => ['entities', 'relations', 'fields'].some((key) => key in doc))
+          .map(({ index }) => index + 1);
+        expect(offenders).toEqual([]);
+      });
     });
   }
 });
