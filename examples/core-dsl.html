@@ -101,17 +101,17 @@
        * 核心 DSL 渲染示例页。
        *
        * 页面写法与家族其它示例一致：**一页 = 一个类**，构造期建好、事件一次挂好。
-       * 这页没有"随数据变化"的部分（唯一的动作是点按钮重渲染），所以没有 `onUpdate()`。
+       * 这页没有"随数据变化"的部分（唯一的动作是点按钮重渲染），所以刷新入口就是 `onUpdate()`。
        */
       class CoreDslPage {
         constructor() {
           this.textarea = document.getElementById('dsl');
-          this.render();
-          document.getElementById('render').addEventListener('click', () => this.render());
+          this.onUpdate();
+          document.getElementById('render').addEventListener('click', () => this.onUpdate());
         }
 
         /** 重新渲染：换掉旧画布（引擎按 canvas 元素初始化，复用旧元素会叠两套） */
-        render() {
+        onUpdate() {
           const oldCanvas = document.getElementById('canvas');
           const nextCanvas = oldCanvas.cloneNode(false);
           oldCanvas.parentNode.replaceChild(nextCanvas, oldCanvas);
