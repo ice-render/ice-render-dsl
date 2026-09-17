@@ -64,10 +64,17 @@
     <script src="../node_modules/ice-render/dist/index.umd.js"></script>
     <script src="../dist/index.umd.js"></script>
     <script>
-      // 6 张卡片 + 标题：错峰入场（每张间隔 90ms），随后标题从左淡入。
-      // 注意：动画只声明在**编排轨道**里（没有写进 nodes[].animations），
-      // 否则它会创建即播，编排再播一次 = 双份播放。
-      const dsl = {
+      /**
+       * 编排（orchestration）示例页。
+       *
+       * 页面写法与家族其它示例一致：**一页 = 一个类**，DSL 是页面类型的静态数据，事件一次挂好。
+       * 这页没有 `onUpdate()` —— 唯一的"变化"是播放编排，由 play/pause/resume/stop 四个动作驱动。
+       */
+      class OrchestrationPage {
+        // 6 张卡片 + 标题：错峰入场（每张间隔 90ms），随后标题从左淡入。
+        // 注意：动画只声明在**编排轨道**里（没有写进 nodes[].animations），
+        // 否则它会创建即播，编排再播一次 = 双份播放。
+        static DSL = {
         schemaVersion: 1,
         nodes: [
           { id: 'title', type: 'text', left: 40, top: 24, width: 380, height: 34, text: '订单处理流水线', style: { fontSize: 22, fontWeight: 'bold', fillStyle: '#0f172a' } },
@@ -98,15 +105,21 @@
             },
           },
         },
-      };
+        };
 
-      window.__dsl = dsl;
-      window.__result = ICEDSL.renderDsl('canvas', dsl);
-      const o = window.__result.orchestration;
-      document.getElementById('btn-replay').onclick = () => o.play('entrance');
-      document.getElementById('btn-pause').onclick = () => o.pause();
-      document.getElementById('btn-resume').onclick = () => o.resume();
-      document.getElementById('btn-stop').onclick = () => o.stop();
+        constructor() {
+          window.__dsl = OrchestrationPage.DSL;
+          window.__result = ICEDSL.renderDsl('canvas', OrchestrationPage.DSL);
+          this.orchestration = window.__result.orchestration;
+
+          document.getElementById('btn-replay').onclick = () => this.orchestration.play('entrance');
+          document.getElementById('btn-pause').onclick = () => this.orchestration.pause();
+          document.getElementById('btn-resume').onclick = () => this.orchestration.resume();
+          document.getElementById('btn-stop').onclick = () => this.orchestration.stop();
+        }
+      }
+
+      new OrchestrationPage();
     </script>
   </body>
 </html>
