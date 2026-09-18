@@ -1,6 +1,6 @@
 {
   "name": "ice-render-dsl",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "A JSON-first DSL layer for AI agents to drive ice-render.",
   "repository": {
     "type": "git",
