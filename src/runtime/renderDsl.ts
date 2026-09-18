@@ -168,8 +168,19 @@ function fitViewport(ice: any, nodes: any[], padding: number): void {
 
   const contentWidth = maxX - minX;
   const contentHeight = maxY - minY;
-  const canvasWidth = ice.canvasWidth || 0;
-  const canvasHeight = ice.canvasHeight || 0;
+  /**
+   * 视口尺寸必须是 **CSS 尺寸**，不是 `canvasWidth/canvasHeight` —— 后者是
+   * **backing store** 尺寸（= css × dpr），而渲染视口还会再乘一次 dpr，
+   * 拿它算 scale 等于**多乘一次**：`options.dpr > 1` 时内容被放大并裁掉，
+   * 而且**不报错**（普通屏完全正常，只在高分屏上复发）。
+   *
+   * ① 首选引擎的输入矩形（内容盒），它与命中测试 / 坐标换算同一口径，dpr 变化时数值不变；
+   * ② 没有布局信息的运行时退回 `canvasWidth / dpr`。
+   */
+  const dpr = ice && ice.dpr ? ice.dpr : 1;
+  const rect = ice && typeof ice.getInputRect === 'function' ? ice.getInputRect() : null;
+  const canvasWidth = rect && rect.width > 0 ? rect.width : (ice.canvasWidth || 0) / dpr;
+  const canvasHeight = rect && rect.height > 0 ? rect.height : (ice.canvasHeight || 0) / dpr;
   if (!canvasWidth || !canvasHeight || contentWidth <= 0 || contentHeight <= 0) {
     return;
   }
