@@ -50,6 +50,6 @@
     "npm": ">=9"
   },
   "peerDependencies": {
-    "ice-render": "^2.16.0"
+    "ice-render": "^2.17.0"
   }
 }
