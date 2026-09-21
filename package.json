@@ -23,6 +23,7 @@
     "types:check": "tsc --noEmit",
     "test:e2e": "npm run build && playwright test",
     "verify": "npm run types:check && npm test && npm run build",
+    "prepublishOnly": "npm run verify",
     "verify:full": "npm run verify && npm run test:e2e"
   },
   "devDependencies": {
